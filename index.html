@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Duopen • Inteligência do Supermercado</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=SUSE:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+
+<style>
+  :root{
+    --bg:#F6FAF8; --card:#FFFFFF; --ink:#0b1a12; --soft:#6d7f76; --border:#DCE8E2;
+    --brand:#22D1B2; --brand2:#10BFA0;
+    --pill:#F3F6F5; --pillBorder:#E5ECE7; --muted:#8aa092;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "SUSE",system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1180px;margin:0 auto;padding:6px 16px 36px}
+  header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.9);backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid var(--border)}
+  header .topline{height:4px;background:linear-gradient(90deg,var(--brand),#cdf6ee)}
+  header .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1180px;margin:0 auto;padding:10px 16px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand img{height:26px}
+  .brand .title{display:flex;flex-direction:column;line-height:1}
+  .brand .title small{color:var(--soft)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border-radius:14px;padding:8px 12px;border:1px solid #CFE7DF;background:#E6FBF6;color:#0b3d33;cursor:pointer}
+  .btn.secondary{background:#EDF6F3}
+  .flex{display:flex}
+  .gap8{gap:8px}
+  .gap12{gap:12px}
+  .between{justify-content:space-between}
+  .center{align-items:center}
+  .mt12{margin-top:12px}
+  .mt16{margin-top:16px}
+
+
+  /* Filtros (full-width, centralizados) */
+  .filters{
+    width:100%;
+    display:grid;
+    grid-template-columns: repeat(6, minmax(160px, 1fr)); /* 5 filtros + botão */
+    gap:12px;
+    align-items:end;
+    padding:12px 16px;
+    margin:8px 0 16px;
+    background:#F8FBFA;
+    border:1px solid var(--border);
+    border-radius:14px;
+  }
+  .filters .box{display:block;padding:0;border:0;background:transparent}
+  .filters label{display:block;margin-bottom:6px;font-size:12px;color:var(--soft)}
+  .filters select,.filters input[type="date"]{width:100%;border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 10px;font-size:13px}
+  .filters > .btn{justify-self:end;align-self:end;height:38px;padding:8px 14px}
+  @media (max-width: 1200px){ .filters{grid-template-columns:repeat(4, minmax(160px,1fr));} }
+  @media (max-width: 860px){ .filters{grid-template-columns:repeat(2, minmax(160px,1fr));} .filters>.btn{justify-self:stretch;} }
+
+
+  /* Grid do dashboard */
+  .dashboard-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .concorrentes-card{grid-row:1 / 3; grid-column:3}
+
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+  .muted{color:var(--muted)}
+  .hint{color:var(--soft);font-size:12px}
+
+
+  /* concorrentes compactos */
+  .compet .list{display:grid;gap:6px;margin-top:6px}
+  .compet .item{background:var(--pill);border:1px solid var(--pillBorder);border-radius:12px;padding:8px 10px}
+  .compet .top{display:flex;align-items:center;justify-content:space-between}
+  .compet .name,.compet .percent{font-weight:600;font-size:12px}
+  .compet .sub{display:flex;align-items:center;justify-content:space-between;color:#88a09a;font-size:10px;margin-top:2px}
+  .compet .barwrap{height:4px;background:#EDF6F3;border:1px solid #DCEFE9;border-radius:999px;margin-top:6px;overflow:hidden}
+  .compet .barfill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));width:0%}
+
+
+  /* barras horizontais (meios pagto) */
+  .bars{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .bar-item{display:flex;align-items:center;gap:8px}
+  .bar-label{min-width:70px;font-size:11px;color:var(--soft);white-space:nowrap}
+  .bar-track{flex:1;height:16px;background:#EDF6F3;border-radius:8px;overflow:hidden}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));border-radius:8px;transition:width 0.3s ease}
+  .bar-percent{min-width:40px;font-size:11px;color:var(--soft);text-align:right;font-weight:500}
+  .kpi{font-weight:700}
+
+
+  /* Gráfico */
+  .chart { position:relative; height:320px; margin:8px 0 4px; }
+  .chart svg{ width:100%; height:100%; display:block; }
+  .grid{ stroke:var(--border); stroke-width:1; opacity:.7 }
+  .axis-label{ fill:var(--soft); font-size:10px }
+  .line-ticket{ fill:none; stroke:url(#gradTicket); stroke-width:3 }
+  .line-rec{ fill:none; stroke:#87d8c8; stroke-width:2.5 }
+  .area-ticket{ fill:url(#areaTicket); opacity:.25 }
+  .cursor-line{ stroke:#b7c7c1; stroke-width:1; stroke-dasharray:3 3; opacity:.9 }
+  .pt{ fill:#fff; stroke:var(--brand); stroke-width:2; }
+  .pt-rec{ fill:#fff; stroke:#87d8c8; stroke-width:2; }
+  .tooltip{
+    position:absolute; pointer-events:none; background:#fff; border:1px solid var(--border);
+    padding:8px 10px; font-size:12px; border-radius:8px; box-shadow:0 10px 24px rgba(0,0,0,.06);
+    transform:translate(-50%,-110%); white-space:nowrap;
+  }
+  .chart-legend{display:flex;gap:18px;justify-content:flex-start;margin-top:8px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)}
+  .legend-dot{width:10px;height:10px;border-radius:50%}
+  .legend-dot.ticket{background:linear-gradient(90deg,var(--brand),var(--brand2))}
+  .legend-dot.recorrencia{background:#87d8c8}
+
+
+  /* Tabela */
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table th,.table td{padding:10px;border-bottom:1px solid #E8EFEA;text-align:left}
+  .badge{padding:4px 8px;border-radius:999px;font-size:11px;display:inline-block}
+  .badge.on{background:#DDF6EF;color:#0a5a4c;border:1px solid #C8EEE6}
+  .badge.off{background:#F2F4F5;color:#525252;border:1px solid #E7EAEC}
+
+
+  /* Nova campanha */
+  .mx{max-width:600px;margin:0 auto}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--soft);margin-bottom:4px}
+  .input,.select,.date{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .chips{display:flex;gap:8px}
+  .chip{display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--border);border-radius:12px;background:var(--pill);cursor:pointer;font-size:12px}
+  .chip input{margin:0}
+
+
+  /* ===== Sidebar + Layout ===== */
+  :root{
+    --sidebar-w: 64px;
+    --sidebar-b: 1px;
+    --sidebar-gap: 16px;
+    --container-max: clamp(1150px, 94vw, 1400px);
+    --container-pad: 16px;
+  }
+  .sidebar{
+    position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
+    background:#0B0E12; border-right: var(--sidebar-b) solid #12151B;
+    display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:6px;
+    z-index: 20;
+  }
+  .sidebar .spacer{ flex:1; }
+  .iconbtn{
+    width:48px; height:48px; border-radius:12px; border:1px solid transparent;
+    display:grid; place-items:center; background:transparent; cursor:pointer;
+    transition:.2s ease; color:#E9F3F0;
+  }
+  .iconbtn:hover{ background:#0F1319; border-color:#1A1F27; }
+  .iconbtn.active{ background:rgba(34,209,178,.14); border-color:#22D1B2; }
+  .iconbtn svg{ width:22px; height:22px; stroke:#E9F3F0; stroke-width:1.8; fill:none; }
+  .iconbtn.active svg{ stroke:var(--brand); }
+
+
+  body{ padding-left: var(--sidebar-w) !important; }
+  header .bar, .wrap{
+    max-width: var(--container-max);
+    margin-left:auto; margin-right:auto;
+    padding-left: calc(var(--container-pad) + var(--sidebar-gap)) !important;
+    padding-right: var(--container-pad);
+  }
+  header .topline{ display:none !important; }
+  body::before{
+    content:"";
+    position:fixed; top:0;
+    left: var(--sidebar-w);
+    width: calc(100vw - var(--sidebar-w));
+    height:4px;
+    background:linear-gradient(90deg,var(--brand),#cdf6ee);
+    z-index:15;
+  }
+  /* Sidebar: mantém só o menu e o ativo */
+  .sidebar .iconbtn{ display:none !important; }
+  .sidebar .iconbtn:first-of-type, .sidebar .iconbtn.active{ display:grid !important; }
+  .sidebar .spacer{ display:none !important; }
+
+
+  /* responsivo */
+  @media (max-width: 860px){
+    body{ padding-left:0; }
+    header .bar, .wrap{ max-width:100%; padding-left:16px !important; padding-right:16px; }
+  }
+  /* progresso do período da campanha */
+.progress {
+  height: 8px;
+  background: #EDF6F3;
+  border: 1px solid #DCEFE9;
+  border-radius: 999px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg,var(--brand),var(--brand2));
+  width: 0%;
+}
+
+
+</style>
+</head>
+<body>
+  <!-- Sidebar preta -->
+  <aside class="sidebar">
+    <button class="iconbtn" title="Menu">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+
+
+    <button class="iconbtn active" title="Dashboard" data-route="dashboard">
+      <svg viewBox="0 0 24 24"><path d="M4 14v6h6v-6H4zM14 4h6v16h-6V4zM4 4h6v8H4z"/></svg>
+    </button>
+  </aside>
+
+
+  <header>
+    <div class="topline"></div>
+    <div class="bar">
+      <div class="brand">
+        <img id="logo" alt="Duopen"/>
+        <div class="title">
+          <small>AUTOPILOT</small>
+          <strong>Aumento do ticket médio</strong>
+        </div>
+      </div>
+      <div class="flex gap8">
+        <button class="btn" onclick="route('dashboard')">Dashboard</button>
+        <button class="btn secondary" onclick="route('new')">+ Criar Nova Campanha</button>
+      </div>
+    </div>
+  </header>
+
+
+  <div class="wrap">
+    <div id="view"></div>
+  </div>
+
+
+<script>
+/* ===== Brand ===== */
+const LOGO_DUOPEN = "/Duopen%20Logo%20RGB%20PNG%20(1).png";
+document.getElementById('logo').src = LOGO_DUOPEN || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28" viewBox="0 0 96 28"><rect rx="6" width="96" height="28" fill="white"/><circle cx="14" cy="14" r="8" fill="%2322D1B2"/></svg>';
+
+
+/* ===== Utils ===== */
+const BRL = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const pct = v => (v*100).toFixed(1)+'%';
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+
+/* ===== Estado ===== */
+let state = {
+  route:'dashboard',
+  filters:{ regiao:'Todas', faixa:'Todas', classe:'Todas', ini:todayISO(), fim:todayISO() },
+  // estes dois não são mais usados para o topo; ficam só como defaults de exibição
+  shelfWallet:0.06,
+  totalGasto:2600000,
+  concorrentes:[
+    {nome:'Zona Sul', share:0.17},
+    {nome:'Supermercado Mundial', share:0.10},
+    {nome:'Hortifruti', share:0.06},
+    {nome:'Guanabara', share:0.03},
+  ],
+  clusters:[
+    {regiao:'Zona Norte', idade:39, renda:4800, clientes:4300},
+    {regiao:'Zona Sul',   idade:36, renda:7300, clientes:1800},
+    {regiao:'Baixada',    idade:41, renda:3900, clientes:5200},
+    {regiao:'Centro',     idade:33, renda:5400, clientes:1600},
+    {regiao:'Barra/Jacarepaguá', idade:34, renda:8200, clientes:950},
+  ],
+  campanhas:[
+    {id:'CMP-001',nome:'Cupom PIX – 10% acima de R$150',status:'Ativa',roi:9.6,criadoEm:'2025-08-10',canal:'WhatsApp',orcamento:8000},
+    {id:'CMP-002',nome:'Combo Fim de Semana – 15%',status:'Finalizada',roi:7.4,criadoEm:'2025-07-21',canal:'SMS',orcamento:5000},
+    {id:'CMP-003',nome:'Novos Pais – fraldas + higiene 12%',status:'Ativa',roi:8.9,criadoEm:'2025-08-24',canal:'WhatsApp',orcamento:6000},
+  ],
+  selecionada:null,
+  detailsCache: {},
+};
+const regioes = ['Todas','Centro','Zona Norte','Zona Sul','Barra/Jacarepaguá','Baixada','Niterói/São Gonçalo'];
+const faixas = ['Todas','18–29','30–44','45–59','60+'];
+const classes = ['Todas','AB','C','DE'];
+
+
+/* ===== Helpers ===== */
+function classePorRenda(r){ if(r>=7000) return 'AB'; if(r>=4000) return 'C'; return 'DE'; }
+const pesosPagto = {
+  AB:{PIX:.28, Debito:.16, C1:.24, C2:.16, C6:.16},
+  C :{PIX:.36, Debito:.26, C1:.18, C2:.10, C6:.10},
+  DE:{PIX:.44, Debito:.30, C1:.12, C2:.07, C6:.07}
+};
+const recBase = {AB:3.1, C:2.2, DE:1.6};
+const ticketBase = {AB:120, C:80, DE:55};
+/* Share of Wallet estimado por classe (ajuste se quiser) */
+const shelfBase = { AB:0.18, C:0.13, DE:0.15 };
+
+
+/* ===== Cálculos dirigidos pelos filtros ===== */
+function calcFromFilters(){
+  const f = state.filters;
+  let cols = state.clusters.slice();
+
+
+  if(f.regiao!=='Todas') cols = cols.filter(c=>c.regiao===f.regiao);
+  if(f.faixa!=='Todas'){
+    const [min,max] = f.faixa==='60+'? [60,200] : f.faixa.split('–').map(n=>parseInt(n,10));
+    cols = cols.filter(c => c.idade>=min && c.idade <= (max||999));
+  }
+  if(f.classe!=='Todas') cols = cols.filter(c => classePorRenda(c.renda)===f.classe);
+
+
+  const totalClientes = cols.reduce((s,c)=>s+c.clientes,0) || 1;
+
+
+  const weight = {AB:0,C:0,DE:0};
+  cols.forEach(c=> weight[classePorRenda(c.renda)] += c.clientes);
+  const totW = weight.AB+weight.C+weight.DE || 1;
+  const wAB = weight.AB/totW, wC = weight.C/totW, wDE = weight.DE/totW;
+
+
+  const p = (k)=> (pesosPagto.AB[k]*wAB + pesosPagto.C[k]*wC + pesosPagto.DE[k]*wDE);
+  const meios = [
+    {name:'PIX', value: p('PIX')},
+    {name:'Débito', value: p('Debito')},
+    {name:'Crédito 1x', value: p('C1')},
+    {name:'Crédito 2x', value: p('C2')},
+    {name:'Crédito 6x+', value: p('C6')},
+  ];
+
+
+  const recorrencia = +(recBase.AB*wAB + recBase.C*wC + recBase.DE*wDE).toFixed(2);
+  const ticket = +(ticketBase.AB*wAB + ticketBase.C*wC + ticketBase.DE*wDE).toFixed(2);
+
+
+  const shelfWallet = +(shelfBase.AB*wAB + shelfBase.C*wC + shelfBase.DE*wDE).toFixed(2);
+  const gastoMensal = totalClientes * ticket * recorrencia;
+
+
+  return { totalClientes, meios, recorrencia, ticket, shelfWallet, gastoMensal };
+}
+
+
+/* ===== Router ===== */
+function route(r){ state.route=r; render(); }
+function abrirCampanha(c){
+  const key = c.id || c.nome;
+  if (!state.detailsCache[key]) {
+    state.detailsCache[key] = genDetalhes(c);
+  }
+  state.selecionada = state.detailsCache[key];
+  state.route = 'details';
+  render();
+}
+
+
+
+
+/* ===== Views ===== */
+function viewDashboard(){
+  const { totalClientes, meios, recorrencia, ticket, shelfWallet, gastoMensal } = calcFromFilters();
+  const pot = gastoMensal * (1 - shelfWallet);     // potencial com base no filtro
+  const totalConc = 1 - shelfWallet;               // total da carteira que vai p/ concorrentes
+
+
+  return `
+  <section>
+    <div class="filters">
+      <div class="box"><label>Região</label>
+        <select id="f-reg">${regioes.map(r=>`<option ${r===state.filters.regiao?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="box"><label>Faixa etária</label>
+        <select id="f-faixa">${faixas.map(r=>`<option ${r===state.filters.faixa?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="box"><label>Classe social</label>
+        <select id="f-classe">${classes.map(r=>`<option ${r===state.filters.classe?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="box"><label>Início</label><input id="f-ini" type="date" value="${state.filters.ini}"></div>
+      <div class="box"><label>Fim</label><input id="f-fim" type="date" value="${state.filters.fim}"></div>
+      <button class="btn" id="f-clear">Limpar</button>
+    </div>
+
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <div class="hint">Potencial recuperável</div>
+        <div class="kpi" style="font-size:22px;margin-top:6px">${BRL(pot)}</div>
+        <div class="muted" style="margin-top:6px">Gasto dos seus clientes em concorrentes/mês</div>
+      </div>
+
+
+      <div class="card">
+        <div class="hint">Share of Wallet</div>
+        <div class="flex" style="align-items:center; gap:10px; margin-top:10px">
+          <svg id="donut" width="82" height="82" viewBox="0 0 42 42">
+            <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#E6EEEA" stroke-width="7"></circle>
+            <circle id="donut-fill" cx="21" cy="21" r="15.915" fill="transparent" stroke="#22D1B2" stroke-width="7"
+              stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round"></circle>
+            <circle cx="21" cy="21" r="9" fill="#FFFFFF"></circle>
+          </svg>
+          <div>
+            <div class="kpi" style="font-size:22px">${pct(shelfWallet)}</div>
+            <div class="muted">capturado no supermercado</div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="card compet concorrentes-card">
+        <div class="hint">Principais Concorrentes</div>
+        <div class="list">
+          ${state.concorrentes.map(c=>{
+            const market = c.share/totalConc;  // % entre concorrentes
+            const valor = pot * market;        // R$ indo para esse concorrente
+            return `
+            <div class="item">
+              <div class="top"><div class="name">${c.nome}</div><div class="percent">${BRL(valor)}</div></div>
+              <div class="sub"><span>Market Share</span><span>${(market*100).toFixed(1)}% share of wallet</span></div>
+              <div class="barwrap"><div class="barfill" style="width:${(market*100).toFixed(1)}%"></div></div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+
+      <div class="card">
+        <div class="hint">Meios de pagamento</div>
+        <div class="bars">
+          ${meios.map(m=>`
+            <div class="bar-item">
+              <div class="bar-label">${m.name}</div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${(m.value*100).toFixed(1)}%"></div>
+              </div>
+              <div class="bar-percent">${pct(m.value)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+
+      <div class="card">
+        <div class="hint">Análise de base (filtros)</div>
+        <div style="margin-top:10px">
+          <div class="flex" style="justify-content:space-between"><span class="muted">Total de pessoas</span><span class="kpi" style="font-size:18px">${totalClientes.toLocaleString('pt-BR')}</span></div>
+          <div class="flex" style="justify-content:space-between; margin-top:10px"><span class="muted">Ticket médio estimado</span><span class="kpi" style="font-size:18px">${BRL(ticket)}</span></div>
+          <div class="flex" style="justify-content:space-between; margin-top:10px"><span class="muted">Recorrência média</span><span class="kpi" style="font-size:18px">${recorrencia}x/mês</span></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="flex" style="justify-content:space-between; align-items:center; margin-top:18px">
+      <h2 style="margin:0">Campanhas</h2>
+      <button class="btn" onclick="route('new')">+ Criar Nova Campanha</button>
+    </div>
+
+
+    <div class="card" style="margin-top:10px; padding:0">
+      <table class="table">
+        <thead><tr><th>Nome</th><th>Status</th><th>ROI</th><th>Criada em</th><th>Canal</th><th>Ações</th></tr></thead>
+        <tbody>
+          ${state.campanhas.map(c=>`
+            <tr>
+              <td>${c.nome}</td>
+              <td>${c.status==='Ativa'?'<span class="badge on">Ativa</span>':'<span class="badge off">Finalizada</span>'}</td>
+              <td>${c.roi}x</td>
+              <td>${new Date(c.criadoEm).toLocaleDateString('pt-BR')}</td>
+              <td>${c.canal}</td>
+              <td><button class="btn secondary" onclick='abrirCampanha(${JSON.stringify(c)})'>Abrir</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+
+function viewNova(){
+  return `
+  <section class="mx">
+    <h2 style="margin:8px 0 0 0;font-size:22px">Nova Campanha</h2>
+    <div class="card mt12">
+      <div class="field">
+        <label>Nome da campanha</label>
+        <input id="f-nome" class="input" placeholder="Ex.: Cashback PIX 10%">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Orçamento (R$)</label>
+          <input id="f-orc" type="number" class="input" placeholder="Ex.: 8000">
+        </div>
+        <div class="field">
+          <label>Desconto/bonificação</label>
+          <input id="f-desc" class="input" value="10% se gastar acima de R$200">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Região alvo</label>
+          <select id="f-reg-new" class="select">
+  ${regioes.map(r => `<option ${r==='Todas' ? 'selected' : ''}>${r}</option>`).join('')}
+</select>
+        </div>
+        <div class="field">
+          <label>Canal de envio</label>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="canal" value="SMS"> SMS</label>
+            <label class="chip"><input type="radio" name="canal" value="WhatsApp" checked> WhatsApp</label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Início</label>
+          <input id="f-ini-new" type="date" class="date" value="${todayISO()}">
+        </div>
+        <div class="field">
+          <label>Fim</label>
+          <input id="f-fim-new" type="date" class="date" value="${todayISO()}">
+        </div>
+      </div>
+      <div class="mt16 flex gap12">
+        <button class="btn" onclick="gerar()">Gerar Campanha</button>
+        <button class="btn secondary" onclick="route('dashboard')">Cancelar</button>
+      </div>
+    </div>
+  </section>`;
+}
+
+
+function viewDetalhes(){
+  const d = state.selecionada;
+  const roi = d.gastos>0? (d.receitaIncremental/d.gastos).toFixed(2):'0.00';
+    // Datas de início e fim (usa as que existirem na campanha; senão, criadoEm + 30 dias)
+    const startISO = d.campanha?.ini || d.campanha?.inicio || d.campanha?.start || d.campanha?.criadoEm || todayISO();
+  const endISO   = d.campanha?.fim || d.campanha?.termino || d.campanha?.end || null;
+
+
+  const start = new Date(startISO);
+  let end = endISO ? new Date(endISO) : new Date(start.getTime() + 30*24*60*60*1000);
+  if (isNaN(end) || end <= start) end = new Date(start.getTime() + 30*24*60*60*1000);
+
+
+  const now = new Date();
+  const totalDays   = Math.max(1, Math.round((end - start)/86400000));
+  const elapsedDays = Math.min(totalDays, Math.max(0, Math.round((now - start)/86400000)));
+  const pctPeriod   = Math.round((elapsedDays/totalDays)*100);
+
+
+
+
+  return `
+  <section>
+    <div class="flex between center">
+      <h2 style="margin:8px 0 0 0;font-size:22px">Detalhes da Campanha</h2>
+      <button class="btn secondary" onclick="route('dashboard')">Voltar ao Dashboard</button>
+    </div>
+
+
+    <div class="dashboard-grid" style="margin-top:12px">
+      <div class="card">
+        <div class="hint">Clientes impactados</div>
+        <div class="kpi" style="font-size:22px;margin-top:6px">${d.impacto.clientes.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="card">
+        <div class="hint">Gasto total</div>
+        <div class="kpi" style="font-size:22px;margin-top:6px">${BRL(d.gastos)}</div>
+        <div class="muted" style="margin-top:6px">Custo acumulado</div>
+      </div>
+      <div class="card">
+        <div class="hint">Receita incremental</div>
+        <div class="kpi" style="font-size:22px;margin-top:6px">${BRL(d.receitaIncremental)}</div>
+      </div>
+      <div class="card">
+        <div class="hint">ROI em tempo real</div>
+        <div class="kpi" style="font-size:22px;margin-top:6px">${roi}x</div>
+        <div class="muted" style="margin-top:6px">${d.campanha.nome}</div>
+      </div>
+      <!-- Período da campanha, ao lado do ROI -->
+<div class="card" style="grid-column:2 / -1">
+  <div class="flex between center">
+    <div>
+      <div class="hint">Período da campanha</div>
+      <div class="muted" style="margin-top:6px">
+        Início: ${start.toLocaleDateString('pt-BR')}
+        &nbsp;•&nbsp;
+        Fim: ${end.toLocaleDateString('pt-BR')}
+      </div>
+    </div>
+    <div class="kpi" style="font-size:16px">${pctPeriod}% do período</div>
+  </div>
+  <div class="progress"><i style="width:${pctPeriod}%"></i></div>
+</div>
+
+
+          </div> <!-- fecha .dashboard-grid -->
+
+
+    <div class="card" style="margin-top:12px">
+      <div class="hint">Evolução – Ticket Médio (R$) × Recorrência (x/mês)</div>
+      <div id="evol-chart" class="chart"></div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot ticket"></div><span>Ticket Médio</span></div>
+        <div class="legend-item"><div class="legend-dot recorrencia"></div><span>Recorrência</span></div>
+      </div>
+    </div>
+
+
+    <div class="card" style="margin-top:12px">
+      <div class="hint">Eventos/compras recentes</div>
+      <div style="overflow:auto;margin-top:8px">
+        <table class="table">
+          <thead><tr><th>Data</th><th>Cliente</th><th>Meio</th><th>Valor</th></tr></thead>
+          <tbody>
+            ${d.eventos.map(e=>`<tr><td>${e.data}</td><td>${e.cliente}</td><td>${e.meio}</td><td>${BRL(e.valor)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>`;
+}
+
+
+/* ===== Interactions ===== */
+function gerar(){
+  const nome = document.getElementById('f-nome').value.trim();
+  if(!nome){ alert('Dê um nome à campanha'); return; }
+  const orc = parseFloat(document.getElementById('f-orc').value||'0')||0;
+  const canal = (document.querySelector('input[name="canal"]:checked')||{}).value || 'WhatsApp';
+
+
+  const nova = {
+    id: `CMP-${String(state.campanhas.length+1).padStart(3,'0')}`,
+    nome,
+    status: 'Ativa',
+    roi: +(1.2 + Math.random()*2.5).toFixed(1),
+    criadoEm: todayISO(),
+    canal,
+    orcamento: orc
+  };
+
+
+  state.campanhas = [nova, ...state.campanhas];
+
+
+  // ✅ Gera UMA VEZ e guarda no cache
+  const key = nova.id || nova.nome;
+  if (!state.detailsCache[key]) {
+    state.detailsCache[key] = genDetalhes(nova);
+  }
+  state.selecionada = state.detailsCache[key];
+
+
+  state.route = 'details';
+  render();
+}
+
+
+
+
+/* ===== Donut ===== */
+function attachDonut(value){
+  const fill = document.getElementById('donut-fill');
+  if(!fill) return;
+  const v = Math.max(0, Math.min(1, value));
+  const perc = (v*100).toFixed(2);
+  fill.setAttribute('stroke-dasharray', `${perc} ${100-perc}`);
+}
+
+
+/* ===== Data generators ===== */
+function genDetalhes(campanha){
+  const impacto = { 
+    clientes: Math.floor(1500 + Math.random()*3500), 
+    series: Array.from({length:14},(_,i)=>({dia:i+1,qtd:50+i*20+Math.random()*30})) 
+  };
+  const gastos = Math.min(+(campanha.orcamento||5000),20000);
+  const receitaIncremental = +(gastos * (Number(campanha.roi) || 0)).toFixed(2);
+
+
+  const nomes = ['A. Santos','B. Souza','C. Oliveira','D. Lima','E. Costa','F. Pereira','G. Rocha','H. Teixeira','I. Gomes','J. Almeida'];
+  const meios = ['PIX','Débito','Crédito 1x','Crédito 2x','Crédito 6x+'];
+  const eventos = Array.from({length:12},()=>({
+    data:new Date(Date.now()-Math.random()*7*86400000).toLocaleDateString('pt-BR'),
+    cliente:nomes[Math.floor(Math.random()*nomes.length)],
+    meio:meios[Math.floor(Math.random()*meios.length)],
+    valor:+(60+Math.random()*320).toFixed(2)
+  }));
+
+
+  // séries crescentes
+  const len = 14;
+  let t = +(75 + Math.random()*15).toFixed(2);
+  const tSlope = 0.8 + Math.random()*1.6;
+  let r = +(1.9 + Math.random()*0.4).toFixed(2);
+  const rSlope = 0.03 + Math.random()*0.05;
+
+
+  const evolucao = Array.from({length:len}, (_, i) => {
+    if(i>0){
+      let nextT = t + tSlope + (Math.random()-0.5)*1.2;
+      if(nextT <= t) nextT = t + 0.2 + Math.random()*0.5;
+      t = +nextT.toFixed(2);
+
+
+      let nextR = r + rSlope + (Math.random()-0.5)*0.04;
+      if(nextR <= r) nextR = r + 0.01 + Math.random()*0.03;
+      r = +nextR.toFixed(2);
+    }
+    return { dia:i+1, ticket:t, recorrencia:r };
+  });
+
+
+  return { campanha, impacto, gastos, receitaIncremental, eventos, evolucao };
+}
+
+
+/* ===== Line chart (SVG) ===== */
+function niceRange(min, max){
+  if(min===max){ return {min:min-1, max:max+1}; }
+  const span = max-min;
+  const step = Math.pow(10, Math.floor(Math.log10(span)))/2;
+  const nmin = Math.floor(min/step)*step;
+  const nmax = Math.ceil(max/step)*step;
+  return {min:nmin, max:nmax};
+}
+function pathSmooth(points){
+  const d = [];
+  for(let i=0;i<points.length;i++){
+    const p0 = points[i-1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i+1] || p1;
+    const p3 = points[i+2] || p2;
+    if(i===0) d.push(`M${p1[0]},${p1[1]}`);
+    const c1x = p1[0] + (p2[0]-p0[0])/6;
+    const c1y = p1[1] + (p2[1]-p0[1])/6;
+    const c2x = p2[0] - (p3[0]-p1[0])/6;
+    const c2y = p2[1] - (p3[1]-p1[1])/6;
+    d.push(`C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`);
+  }
+  return d.join(' ');
+}
+function drawEvolChart(){
+  const el = document.getElementById('evol-chart');
+  if(!el) return;
+  const data = state.selecionada.evolucao;
+  const n = data.length;
+
+
+  const w = el.clientWidth || 800, h = el.clientHeight || 320;
+  const m = {t:18,r:44,b:28,l:44};
+
+
+  const x = i => m.l + (i/(n-1))*(w-m.l-m.r);
+
+
+  const tVals = data.map(d=>d.ticket);
+  const rVals = data.map(d=>d.recorrencia);
+  const {min:tMinRaw, max:tMaxRaw} = niceRange(Math.min(...tVals), Math.max(...tVals));
+  const {min:rMinRaw, max:rMaxRaw} = niceRange(Math.min(...rVals), Math.max(...rVals));
+  const yTicket = v => h-m.b - ((v - tMinRaw)/((tMaxRaw-tMinRaw)||1))*(h-m.t-m.b);
+  const yRec    = v => h-m.b - ((v - rMinRaw)/((rMaxRaw-rMinRaw)||1))*(h-m.t-m.b);
+
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="gradTicket" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--brand')||'#22D1B2'}"/>
+          <stop offset="100%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--brand2')||'#10BFA0'}"/>
+        </linearGradient>
+        <linearGradient id="areaTicket" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue('--brand')||'#22D1B2'}" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${[0,1,2,3,4].map(i=>{
+        const yy = m.t + i*(h-m.t-m.b)/4;
+        return `<line class="grid" x1="${m.l}" y1="${yy}" x2="${w-m.r}" y2="${yy}"/>`;
+      }).join('')}
+      <text class="axis-label" x="${m.l-6}" y="${yTicket(tMaxRaw)-4}" text-anchor="end">${BRL(tMaxRaw)}</text>
+      <text class="axis-label" x="${m.l-6}" y="${yTicket(tMinRaw)+10}" text-anchor="end">${BRL(tMinRaw)}</text>
+      <text class="axis-label" x="${w-m.r+6}" y="${yRec(rMaxRaw)-4}" text-anchor="start">${rMaxRaw.toFixed(1)}x</text>
+      <text class="axis-label" x="${w-m.r+6}" y="${yRec(rMinRaw)+10}" text-anchor="start">${rMinRaw.toFixed(1)}x</text>
+
+
+      <path class="area-ticket" d="$AREAPATH"/>
+      <path class="line-ticket" d="$TICKETPATH"/>
+      <path class="line-rec" d="$RECPATH"/>
+
+
+      <line id="curLine" class="cursor-line" x1="0" y1="${m.t}" x2="0" y2="${h-m.b}" opacity="0"/>
+      <g id="pts"></g>
+      <rect id="hit" x="${m.l}" y="${m.t}" width="${w-m.l-m.r}" height="${h-m.t-m.b}" fill="transparent" />
+    </svg>
+    <div id="tip" class="tooltip" style="opacity:0"></div>
+  `;
+
+
+  const tPoints = data.map((d,i)=>[x(i), yTicket(d.ticket)]);
+  const rPoints = data.map((d,i)=>[x(i), yRec(d.recorrencia)]);
+  const ticketPath = pathSmooth(tPoints);
+  const recPath = pathSmooth(rPoints);
+  const areaPath = ticketPath + ` L ${x(n-1)},${h-m.b} L ${x(0)},${h-m.b} Z`;
+
+
+  el.querySelector('path.line-ticket').setAttribute('d', ticketPath);
+  el.querySelector('path.line-rec').setAttribute('d', recPath);
+  el.querySelector('path.area-ticket').setAttribute('d', areaPath);
+
+
+  const ptsG = el.querySelector('#pts');
+  ptsG.innerHTML = data.map((d,i)=>`
+    <circle class="pt" cx="${x(i)}" cy="${yTicket(d.ticket)}" r="3.5"></circle>
+    <circle class="pt pt-rec" cx="${x(i)}" cy="${yRec(d.recorrencia)}" r="3.5"></circle>
+  `).join('');
+
+
+  const step = Math.max(1, Math.round(n/7));
+  const svg = el.querySelector('svg');
+  for(let i=0;i<n;i+=step){
+    const tx = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tx.setAttribute('class','axis-label');
+    tx.setAttribute('x', x(i));
+    tx.setAttribute('y', h-6);
+    tx.setAttribute('text-anchor','middle');
+    tx.textContent = `Dia ${data[i].dia}`;
+    svg.appendChild(tx);
+  }
+
+
+  const cur = el.querySelector('#curLine');
+  const tip = el.querySelector('#tip');
+  const hit = el.querySelector('#hit');
+  hit.addEventListener('mousemove', ev=>{
+    const rect = hit.getBoundingClientRect();
+    const px = ev.clientX - rect.left;
+    let ratio = px/(rect.width);
+    ratio = Math.max(0, Math.min(1, ratio));
+    const idx = Math.round(ratio*(n-1));
+    const cx = x(idx);
+    cur.setAttribute('x1', cx); cur.setAttribute('x2', cx);
+    cur.setAttribute('opacity','1');
+
+
+    const d = data[idx];
+    tip.style.left = `${cx}px`;
+    tip.style.top = `${yTicket(d.ticket)}px`;
+    tip.style.opacity = 1;
+    tip.innerHTML = `<strong>Dia ${d.dia}</strong><br/>Ticket: ${BRL(d.ticket)}<br/>Recorrência: ${d.recorrencia.toFixed(2)}x/mês`;
+  });
+  hit.addEventListener('mouseleave', ()=>{
+    cur.setAttribute('opacity','0');
+    el.querySelector('#tip').style.opacity = 0;
+  });
+}
+
+
+/* ===== Hooks & Render ===== */
+function hookFilters(){
+  const get = id => document.getElementById(id);
+  const elReg = get('f-reg'), elFaixa=get('f-faixa'), elClasse=get('f-classe'), elIni=get('f-ini'), elFim=get('f-fim'), elClear=get('f-clear');
+  if(!elReg) return;
+  [elReg, elFaixa, elClasse, elIni, elFim].forEach(el=>{
+    el.onchange = ()=>{
+      state.filters = {
+        regiao: elReg.value,
+        faixa: elFaixa.value,
+        classe: elClasse.value,
+        ini: elIni.value,
+        fim: elFim.value
+      };
+      render();
+    };
+  });
+  elClear.onclick = ()=>{
+    state.filters = { regiao:'Todas', faixa:'Todas', classe:'Todas', ini:todayISO(), fim:todayISO() };
+    render();
+  };
+}
+
+
+function render(){
+  const el=document.getElementById('view');
+  if(state.route==='dashboard'){
+    el.innerHTML = viewDashboard();
+    attachDonut(calcFromFilters().shelfWallet);  // donut com valor filtrado
+    hookFilters();
+  }
+  if(state.route==='new'){ el.innerHTML = viewNova(); }
+  if(state.route==='details'){ el.innerHTML = viewDetalhes(); drawEvolChart(); }
+}
+render();
+</script>
+</body>
+</html>
+
